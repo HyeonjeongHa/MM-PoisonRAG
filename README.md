@@ -1,1 +1,102 @@
-# MM-PoisonRAG
+# MM-PoisonRAG: Disrupting Multimodal RAG with Local and Global Poisoning Attacks
+
+This is the official PyTorch implementation for the paper ***[MM-PoisonRAG: Disrupting Multimodal RAG with Local and Global Poisoning Attacks](https://arxiv.org/abs/2306.05031)***.
+![image info](./assets/two_settings_final.png)
+
+## Abstract
+Multimodal large language models (MLLMs) equipped with Retrieval Augmented Generation (RAG) leverage both their rich parametric knowledge and the dynamic, external knowledge to excel in tasks such as Question Answering. While RAG enhances MLLMs by grounding responses in query-relevant external knowledge, this reliance poses a critical yet underexplored safety risk: knowledge poisoning attacks, where misinformation or irrelevant knowledge is intentionally injected into external knowledge bases to manipulate model outputs to be incorrect and even harmful.
+To expose such vulnerabilities in multimodal RAG, we propose MM-PoisonRAG, a novel knowledge poisoning attack framework with two attack strategies: Localized Poisoning Attack (LPA), which injects query-specific misinformation in both text and images for targeted manipulation, and Globalized Poisoning Attack (GPA) to provide false guidance during MLLM generation to elicit non-sensical responses across all queries. 
+We evaluate our attacks across multiple tasks, models, and access settings, demonstrating that LPA successfully manipulates the MLLM to generate attacker-controlled answers, with a success rate of up to 56\% on MultiModalQA. Moreover, GPA completely disrupts model generation to 0\% accuracy with just a single irrelevant knowledge injection. Our results highlight the urgent need for robust defenses against knowledge poisoning to safeguard multimodal RAG frameworks.
+
+
+## Installation 
+- `python == 3.10`
+- Use `requirements.txt` file to setup environment, then, follow [LLaVA](https://github.com/haotian-liu/LLaVA) to configure your environment.
+```sh
+pip install -r requirements.txt
+```
+
+### Data Preparation
+Locate below two benchmarks in `./finetune/tasks` directory
+- Download from [WebQA](https://drive.google.com/drive/folders/1wY18Vbrb8yDbFSg1Te-FQIs84AYYh48Z) and [MultimodalQA](https://github.com/allenai/multimodalqa) for image files.
+- Place the `MMQA_imgs/` under `./finetune/tasks`.
+- Unzip the files, and place the `WebQA_imgs/train`, `WebQA_imgs/val`, `WebQA_imgs/test` under `./finetune/tasks`.
+
+## MM-PoisonRAG
+1) You have to first generate poisoned knowledge using `LPA-BB/LPA-Rt/GPA-Rt/GPA-RtRrGen` and get metadata file that contains information of poisoned knowledge.
+2) Run `mllm_rag.py` to evaluate the retrieval recall and final accuracy before / after poisoning attacks.
+
+### LPA-BB
+```sh
+# MMQA
+CUDA_VISIBLE_DEVICES=0 python lpa_bb.py --task MMQA --metadata_path datasets/MMQA_test_image.json --save_data_dir datasets --save_img_dir datasets/MMQA_lpa-bb_images
+
+# WebQA
+CUDA_VISIBLE_DEVICES=0 python lpa_bb.py --task WebQA --metadata_path datasets/WebQA_test_image.json --save_data_dir datasets --save_img_dir datasets/WebQA_lpa-bb_images
+```
+
+### LPA-Rt
+- You need to run LPA-BB first to obtain metadata file `MMQA-lpa-bb.json`.
+```sh
+# MMQA
+CUDA_VISIBLE_DEVICES=0 python lpa_rt.py --task MMQA --metadata_path datasets/MMQA-lpa-bb.json --save_data_dir datasets --save_img_dir datasets/MMQA_lpa-rt_images --num_steps 50 --eps 0.05 --lr 0.005
+
+# WebQA
+CUDA_VISIBLE_DEVICES=0 python lpa_rt.py --task WebQA --metadata_path datasets/WebQA-lpa-bb.json --save_data_dir datasets --save_img_dir datasets/WebQA_lpa-rt_images --num_steps 50 --eps 0.05 --lr 0.005
+```
+
+### GPA-Rt
+- If you have metadata file with LPA-BB or LPA-Rt generated poisoned knowledge, you can automatically estimate win rate of GPA over LPA attack for all queries.
+```sh
+# MMQA
+CUDA_VISIBLE_DEVICES=0 python gpa_rt.py --task MMQA --metadata_path datasets/MMQA-lpa-bb.json --save_data_dir datasets --save_img_dir datasets/MMQA_gpa-rt_images --num_steps 500 --lr 0.005
+
+# WebQA
+CUDA_VISIBLE_DEVICES=0 python gpa_rt.py --task WebQA --metadata_path datasets/WebQA_lpa-bb.json --save_data_dir datasets --save_img_dir datasets/WebQA_gpa-rt_images --num_steps 500 --lr 0.005
+```
+
+### GPA-RtRrGen
+- You need at least 3 GPUs to run `gpa_rtrrgen.py`.
+- You can set `reranker_type` and `generator_type` to specific model you want to target (llava or qwen).
+
+```sh
+# MMQA
+CUDA_VISIBLE_DEVICES=0,1,2 python gpt_rtrrgen.py --task MMQA --metadata_path datasets/MMQA-lpa-bb.json --save_dir results --num_iterations 2500 --lr 0.01 --alpha 0.2 --beta 0.3 --reranker_type llava --generator_type llava
+
+# WebQA
+CUDA_VISIBLE_DEVICES=0,1,2 python gpt_rtrrgen.py --task WebQA --metadata_path datasets/WebQA_lpa-bb.json --save_dir results --num_iterations 2500 --lr 0.01 --alpha 0.2 --beta 0.3 --reranker_type llava --generator_type llava
+```
+
+### Evaluation
+- You can use `poisoned_data_path` that you want to evaluate (LPA-BB/LPA-Rt/GPA-Rt/GPA-RtRrGen).
+- You can evaluate 3 retrieval and reranking settings by changing `clip_topk`, `rerank_off`, `use_caption`.
+- You can use `llava` or `qwen` to adjust the reranker and generator models. Importantly, when you evaluate GPA-RtRrGen, you have to use the same reranker and generator model used for generating GPA-RtRrGen.
+```sh
+# MMQA, K=1, no rerank
+CUDA_VISIBLE_DEVICES=0 python mllm_rag.py --task MMQA --retrieve_type clip --reranker_type llava --generator_type llava --index_file_path datasets/faiss_index/MMQA_test_image_clip.index --save_dir results --poisoned_data_path datasets/MMQA_lpa-bb.json --clip_topk 1 --rerank_off
+
+# MMQA, K=5, rerank with only images
+CUDA_VISIBLE_DEVICES=0 python mllm_rag.py --task MMQA --retrieve_type clip --reranker_type llava --generator_type llava --index_file_path datasets/faiss_index/MMQA_test_image_clip.index --save_dir results --poisoned_data_path datasets/MMQA_lpa-bb.json --clip_topk 5 
+
+# MMQA, K=5, rerank with both images and captions
+CUDA_VISIBLE_DEVICES=0 python mllm_rag.py --task MMQA --retrieve_type clip --reranker_type llava --generator_type llava --index_file_path datasets/faiss_index/MMQA_test_image_clip.index --save_dir results --poisoned_data_path datasets/MMQA_lpa-bb.json --clip_topk 5 --use_caption
+
+# WebQA, K=2, no rerank
+CUDA_VISIBLE_DEVICES=0 python mllm_rag.py --task WebQA --retrieve_type clip --reranker_type llava --generator_type llava --index_file_path datasets/faiss_index/WebQA_test_image_clip.index --save_dir results --poisoned_data_path datasets/WebQA_lpa-bb.json --clip_topk 2 --rerank_off
+```
+- If you want to evaluate transferability of LPA, you can set `transfer` and change `retriever_type` and `index_file_path`.
+```sh
+# MMQA, K=1, no rerank
+CUDA_VISIBLE_DEVICES=0 python mllm_rag.py --transfer --task MMQA --retrieve_type openclip --reranker_type llava --generator_type llava --index_file_path datasets/faiss_index/MMQA_test_image_openclip.index --save_dir results --poisoned_data_path datasets/MMQA_lpa-bb.json --clip_topk 1 --rerank_off
+```
+
+## Citation
+If you found the provided code useful, please cite our work.
+```
+@article{ha2023generalizable,
+  title={Generalizable Lightweight Proxy for Robust NAS against Diverse Perturbations},
+  author={Ha, Hyeonjeong and Kim, Minseon and Hwang, Sung Ju},
+  journal={arXiv preprint arXiv:2306.05031},
+  year={2023}
+}
+```
