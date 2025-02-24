@@ -11,9 +11,10 @@ We evaluate our attacks across multiple tasks, models, and access settings, demo
 
 ## Installation 
 - `python == 3.10`
-- Use `requirements.txt` file to setup environment, then, follow [LLaVA](https://github.com/haotian-liu/LLaVA) to configure your environment.
+- Use `requirements.txt` file to setup environment, then, run `post_install.sh` file. Lastly, follow [LLaVA](https://github.com/haotian-liu/LLaVA) to configure your environment.
 ```sh
 pip install -r requirements.txt
+bash post_install.sh
 ```
 
 ### Data Preparation
@@ -61,10 +62,10 @@ CUDA_VISIBLE_DEVICES=0 python gpa_rt.py --task WebQA --metadata_path datasets/We
 
 ```sh
 # MMQA
-CUDA_VISIBLE_DEVICES=0,1,2 python gpt_rtrrgen.py --task MMQA --metadata_path datasets/MMQA-lpa-bb.json --save_dir results --num_iterations 2500 --lr 0.01 --alpha 0.2 --beta 0.3 --reranker_type llava --generator_type llava
+CUDA_VISIBLE_DEVICES=0,1,2 python gpa_rtrrgen.py --task MMQA --metadata_path datasets/MMQA-lpa-bb.json --save_dir results --num_iterations 2500 --lr 0.01 --alpha 0.2 --beta 0.3 --reranker_type llava --generator_type llava
 
 # WebQA
-CUDA_VISIBLE_DEVICES=0,1,2 python gpt_rtrrgen.py --task WebQA --metadata_path datasets/WebQA_lpa-bb.json --save_dir results --num_iterations 2500 --lr 0.01 --alpha 0.2 --beta 0.3 --reranker_type llava --generator_type llava
+CUDA_VISIBLE_DEVICES=0,1,2 python gpa_rtrrgen.py --task WebQA --metadata_path datasets/WebQA_lpa-bb.json --save_dir results --num_iterations 2500 --lr 0.01 --alpha 0.2 --beta 0.3 --reranker_type llava --generator_type llava
 ```
 
 ### Evaluation

@@ -6,7 +6,6 @@ import torch
 import json
 from tqdm import tqdm
 import argparse
-from model_series import load_clip
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 

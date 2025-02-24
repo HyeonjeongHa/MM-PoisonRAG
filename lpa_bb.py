@@ -12,7 +12,7 @@ from utils.utils import build_metadata
 
 env = jinja2.Environment(loader=jinja2.FileSystemLoader('prompts'))
 template = env.get_template('prompt_data_gen.jinja')
-OPENAI_API_KEY = "api-key"
+OPENAI_API_KEY = "YOUR API KEY"
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 client = OpenAI()
 
@@ -84,7 +84,6 @@ if __name__ == "__main__":
     parser.add_argument("--save_data_dir", type=str, default='./results', help="save dir path for metadata")
     parser.add_argument("--save_img_dir", type=str, default='./results', help="save dir path for poisoned images")
     args = parser.parse_args()
-    
     os.makedirs(args.save_data_dir, exist_ok=True)
     os.makedirs(args.save_img_dir, exist_ok=True)
 
@@ -94,7 +93,6 @@ if __name__ == "__main__":
     target_answers, poison_img_captions, qids = [], [], []
     gt_answers, questions = [], []
        
-    cnt = 0
     for item in tqdm(qa_data):
         if args.task == 'MMQA':
             qid = item["qid"]
@@ -115,13 +113,10 @@ if __name__ == "__main__":
                 gt_answers.append(original_answer)
                 questions.append(question)
                 qids.append(qid)
-                cnt += 1
             except Exception as e:
                 print(e)
                 max_try -= 1
         
-        if cnt == 5:
-            break
 
     poisoned_img_paths = gen_poison_imgs(args, poison_img_captions, qids)
     build_metadata(

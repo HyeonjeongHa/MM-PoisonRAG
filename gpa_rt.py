@@ -1,6 +1,3 @@
-# the goal is to implement the new attack
-# % task = 7k questions -> clustering, let's say we have 5 clusters 
-# % -> generate 5 different attacked image-text pairs for each cluster against each centroid -> generate poisoning attack that can be applied to multiple queries simultaneously
 import os
 import json
 import torch
