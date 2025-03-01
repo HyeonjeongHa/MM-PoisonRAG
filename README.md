@@ -1,7 +1,7 @@
 # MM-PoisonRAG: Disrupting Multimodal RAG with Local and Global Poisoning Attacks
 
 This is the official PyTorch implementation for the paper ***[MM-PoisonRAG: Disrupting Multimodal RAG with Local and Global Poisoning Attacks](https://arxiv.org/abs/2306.05031)***.
-![image info](./assets/two_settings_final.png)
+![image info](./assets/concept_figure.png)
 
 ## Abstract
 Multimodal large language models (MLLMs) equipped with Retrieval Augmented Generation (RAG) leverage both their rich parametric knowledge and the dynamic, external knowledge to excel in tasks such as Question Answering. While RAG enhances MLLMs by grounding responses in query-relevant external knowledge, this reliance poses a critical yet underexplored safety risk: knowledge poisoning attacks, where misinformation or irrelevant knowledge is intentionally injected into external knowledge bases to manipulate model outputs to be incorrect and even harmful.
